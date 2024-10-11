@@ -1,5 +1,7 @@
 <?php
 
+require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-wpam-user-data.php';
+
 /**
  * The admin-specific functionality of the plugin.
  *
@@ -51,6 +53,8 @@ class Wpam_Admin {
 
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
+    $this->register_admin_hooks();
+    $this->user_data = new Wpam_User_Data();
 
 	}
 
@@ -100,4 +104,52 @@ class Wpam_Admin {
 
 	}
 
+  public function register_admin_hooks() {
+    add_action('admin_menu', array($this,'create_admin_page'));
+  }
+
+  public function create_admin_page() {
+    add_menu_page(
+      'WP Account Merger',
+      'WP Account Merger',
+      'manage_options',
+      'wpam',
+      array($this, 'render_admin_page'),
+    );
+  }
+
+  public function render_admin_page() {
+  ?>
+    <div class="wrap">
+      <h1>User Account Merger</h1>
+      <form method="post">
+        <table class="form-table">
+          <tr>
+            <th><label for="source_user_id">Source User ID:</label></th>
+            <td><input type="text" id="source_user_id" name="source_user_id" /></td>
+          </tr>
+          <tr>
+            <th><label for="target_user_id">Target User ID:</label></th>
+            <td><input type="text" id="target_user_id" name="target_user_id" /></td>
+          </tr>
+        </table>
+        <p class="submit">
+          <input type="submit" name="submit" class="button button-primary" value="Map User Data" />
+        </p>
+      </form>
+      <?php
+      if (isset($_POST['submit'])) {
+        $source_user_id = $_POST['source_user_id'];
+        $target_user_id = $_POST['target_user_id'];
+
+        $mapped_data = $this->user_data->map_user_data($source_user_id, $target_user_id);
+
+        echo '<h2>Mapped User Data:</h2>';
+        echo '<pre>';
+        print_r($mapped_data);
+        echo '</pre>';
+      } ?>
+    </div>
+  <?php
+  }
 }
