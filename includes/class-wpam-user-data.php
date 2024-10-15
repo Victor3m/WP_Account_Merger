@@ -19,35 +19,27 @@ class Wpam_User_Data {
   }
 
   public function get_user_orders($user_id) {
-    $orders = wc_get_orders(array('customer_id' => $user_id));
+    $orders = wc_get_orders(array(
+      'customer_id' => $user_id,
+      'limit' => -1
+    ));
     if (!$orders) {
       return false;
     }
 
-    $orders_data = array();
-
-    foreach ($orders as $order) {
-      $data = wc_get_order($order);
-      $orders_data[] = $data;
-    }
-
-    return $orders_data;
+    return $orders;
   }
 
   public function get_user_subscriptions($user_id) {
-    $subscriptions = wcs_get_subscriptions(array('customer_id' => $user_id));
+    $subscriptions = wcs_get_subscriptions(array(
+      'customer_id' => $user_id,
+      'limit' => -1
+    ));
     if (!$subscriptions) {
       return false;
     }
 
-    $subscriptions_data = array();
-
-    foreach ($subscriptions as $subscription) {
-      $data = wcs_get_subscription($subscription);
-      $subscriptions_data[] = $data;
-    }
-
-    return $subscriptions_data;
+    return $subscriptions;
   }
 
   public function get_user_memberships($user_id) {
@@ -56,13 +48,6 @@ class Wpam_User_Data {
       return false;
     }
 
-    $memberships_data = array();
-
-    foreach ($memberships as $membership) {
-      $data = wc_memberships_get_user_membership($membership);
-      $memberships_data[] = $data;
-    }
-
-    return $memberships_data;
+    return $memberships;
   }
 }
