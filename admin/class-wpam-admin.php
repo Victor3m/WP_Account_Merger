@@ -142,12 +142,12 @@ class Wpam_Admin {
       if (isset($_POST['submit'])) {
         $source_id = intval($_POST['source_user_id']);
         $target_id = intval($_POST['target_user_id']);
-        $user_selection = $this->display_account_details($source_id, $target_id);
+        $user_selection = $this->display_account_details_choices($source_id, $target_id);
         if (!$user_selection) {
           echo 'Invalid User IDs';
           return false;
         }
-        is_plugin_active('woocommerce/woocommerce.php') ? $this->display_order_choices($source_id, $target_id) : '';
+        is_plugin_active('woocommerce/woocommerce.php') ? $this->get_orders($source_id, $target_id) : '';
         is_plugin_active('woocommerce-subscriptions/woocommerce-subscriptions.php') ? $this->display_subscription_choices($source_id, $target_id) : '';
         is_plugin_active('woocommerce-memberships/woocommerce-memberships.php') ? $this->display_membership_choices($source_id, $target_id) : '';
       } ?>
@@ -155,14 +155,14 @@ class Wpam_Admin {
     <?php
   }
 
-  public function display_account_details($source_id, $target_id) {
+  public function display_account_details_choices($source_id, $target_id) {
     $account1 = get_userdata($source_id);
     $account2 = get_userdata($target_id);
     if (!$account1 || !$account2) {
       return false;
     }
     ?>
-      <table class="wp-list-table widefat fixed striped">
+      <table class="wp-list-table widefat fixed">
         <thead>
           <tr>
             <th>Account Details</th>
@@ -194,30 +194,77 @@ class Wpam_Admin {
     return true;
   }
 
-  public function display_membership_choices($source_account_id, $target_account_id) {
-    // Retrieve the memberships
-    $source_memberships = $this->user_data->get_user_memberships($source_account_id);
-    $target_memberships = $this->user_data->get_user_memberships($target_account_id);
+  public function get_orders($source_account_id, $target_account_id) {
+    // Retrieve the orders
+    $source_orders = $this->user_data->get_user_orders($source_account_id);
+    $target_orders = $this->user_data->get_user_orders($target_account_id);
 
-    // Display the memberships
+    // Display the orders
+    $this->display_order_choices_table($source_orders, $target_orders);
+
+    // Update the merge logic
+    if (isset($_POST['merge_orders'])) {
+      $selected_orders = $_POST['orders'];
+    } else {
+      $selected_orders = array();
+    }
+
+    return ($selected_orders) ? $selected_orders : false;
+  }
+
+  private function display_order_choices_table($source_orders, $target_orders) {
     ?>
     <table class="wp-list-table widefat fixed striped">
       <thead>
         <tr>
           <th>Select</th>
           <th>Customer ID</th>
-          <th>Membership ID</th>
-          <th>Membership Date</th>
-          <th>Membership Status</th>
+          <th>Order ID</th>
+          <th>Order Date</th>
+          <th>Order Total</th>
+          <th>Line Items</th>
         </tr>
       </thead>
       <tbody>
-        <?php $this->check_array_loop_and_display_memberships($source_memberships); ?>
-        <?php $this->check_array_loop_and_display_memberships($target_memberships); ?>
+        <?php 
+        if (is_array($source_orders)) {
+          foreach ($source_orders as $order) {
+            $this->display_order($order);
+          }
+        } else {
+          $this->display_order($source_orders);
+        }
+        ?>
+        <?php 
+        if (is_array($target_orders)) {
+          foreach ($target_orders as $order) {
+            $this->display_order($order); 
+          }
+        } else {
+          $this->display_order($target_orders);
+        }
+        ?>
       </tbody>
     </table>
     <br>
     <?php
+  }
+
+  private function display_order($order) {
+    if (!$order) {
+      return false;
+    } else {
+    $data = $order->get_data();
+    ?>
+    <tr>
+      <td><input type="checkbox" name="orders" value="<?php echo $data['id']; ?>" <?php checked(true); ?> ></td>
+        <td><?php echo $data['customer_id']; ?></td>
+        <td><?php echo $data['id']; ?></td>
+        <td><?php echo $data['date_created']->format('m-d-Y'); ?></td>
+        <td><?php echo $data['total']; ?></td>
+        <td><?php foreach($data['line_items'] as $line_item) { echo $line_item->get_name(); } ?></td>
+    </tr>
+    <?php }
   }
 
   public function display_subscription_choices($source_account_id, $target_account_id) {
@@ -255,64 +302,6 @@ class Wpam_Admin {
     return $selected_subscriptions ? $selected_subscriptions : false;
   }
 
-  public function display_order_choices($source_account_id, $target_account_id) {
-    // Retrieve the orders
-    $source_orders = $this->user_data->get_user_orders($source_account_id);
-    $target_orders = $this->user_data->get_user_orders($target_account_id);
-
-    // Display the orders
-    ?>
-    <table class="wp-list-table widefat fixed striped">
-      <thead>
-        <tr>
-          <th>Select</th>
-          <th>Customer ID</th>
-          <th>Order ID</th>
-          <th>Order Date</th>
-          <th>Order Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php $this->check_array_loop_and_display_orders($source_orders); ?>
-        <?php $this->check_array_loop_and_display_orders($target_orders); ?>
-      </tbody>
-    </table>
-    <br>
-    <?php
-
-    // Update the merge logic
-    if (isset($_POST['merge_orders'])) {
-      $selected_orders = $_POST['orders'];
-    } else {
-      $selected_orders = array();
-    }
-
-    return ($selected_orders) ? $selected_orders : false;
-  }
-
-  private function check_array_loop_and_display_orders($array) {
-    if (!$array) {
-      return false;
-    } elseif (is_array($array)) {
-        foreach ($array as $subarray) { ?>
-        <tr>
-      <td><input type="checkbox" name="orders" value="<?php echo $subarray->ID; ?> " <?php checked(true); ?> ></td>
-          <td><?php echo $subarray->get_customer_id(); ?></td>
-          <td><?php echo $subarray->ID; ?></td>
-          <td><?php echo $subarray->order_date; ?></td>
-          <td><?php echo $subarray->order_total; ?></td>
-        </tr>
-    <?php } } else { ?>
-        <tr>
-          <td><input type="checkbox" name="orders" value="<?php echo $array->ID; ?>" <?php checked(true); ?> ></td>
-          <td><?php echo $subarray->get_customer_id(); ?></td>
-          <td><?php echo $array->ID; ?></td>
-          <td><?php echo $array->order_date; ?></td>
-          <td><?php echo $array->order_total; ?></td>
-    </tr> 
-    <?php }
-  }
-
   private function check_array_loop_and_display_subscriptions($array) {
     if (!$array) {
       return false;
@@ -334,6 +323,32 @@ class Wpam_Admin {
           <td><?php echo $array->order_total; ?></td>
     </tr> 
     <?php }
+  }
+
+  public function display_membership_choices($source_account_id, $target_account_id) {
+    // Retrieve the memberships
+    $source_memberships = $this->user_data->get_user_memberships($source_account_id);
+    $target_memberships = $this->user_data->get_user_memberships($target_account_id);
+
+    // Display the memberships
+    ?>
+    <table class="wp-list-table widefat fixed striped">
+      <thead>
+        <tr>
+          <th>Select</th>
+          <th>Customer ID</th>
+          <th>Membership ID</th>
+          <th>Membership Date</th>
+          <th>Membership Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php $this->check_array_loop_and_display_memberships($source_memberships); ?>
+        <?php $this->check_array_loop_and_display_memberships($target_memberships); ?>
+      </tbody>
+    </table>
+    <br>
+    <?php
   }
 
   private function check_array_loop_and_display_memberships($array) {

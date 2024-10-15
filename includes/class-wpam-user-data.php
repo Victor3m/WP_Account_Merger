@@ -1,6 +1,7 @@
 <?php
 
 class Wpam_User_Data {
+
   public function wp_am_get_user_data($user_id) {
     $user_data = array();
     $user = get_userdata($user_id);
