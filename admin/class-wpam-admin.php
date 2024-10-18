@@ -107,21 +107,21 @@ class Wpam_Admin {
 	}
 
   public function register_admin_hooks() {
-    add_action('admin_menu', array($this,'create_admin_page'));
+    add_action('admin_menu', array($this,'create_user_submenu'));
   }
 
-  public function create_admin_page() {
+  public function create_user_submenu() {
     add_submenu_page(
       'users.php',
       'WP Account Merger',
       'Merge Accounts',
       'manage_options',
       'wpam',
-      array($this, 'render_admin_page'),
+      array($this, 'render_user_submenu'),
     );
   }
 
-  public function render_admin_page() {
+  public function render_user_submenu() {
   ?>
     <div class="wrap">
       <h1>User Account Merger</h1>
@@ -129,21 +129,38 @@ class Wpam_Admin {
         <table class="form-table">
           <tr>
             <th><label for="source_user_id">Source User ID:</label></th>
-            <td><input type="text" id="source_user_id" name="source_user_id" /></td>
+            <td><input list="source_users" type="text" id="source_user_id" name="source_user_id" autocomplete="off" required/></td>
+            <datalist id="source_users"></datalist>
           </tr>
           <tr>
             <th><label for="target_user_id">Target User ID:</label></th>
-            <td><input type="text" id="target_user_id" name="target_user_id" /></td>
+            <td><input list="target_users" type="text" id="target_user_id" name="target_user_id" autocomplete="off" required/></td>
+            <datalist id="target_users"></datalist>
           </tr>
         </table>
         <p class="submit">
-          <input type="submit" name="submit" class="button button-primary" value="Map User Data" />
+          <input type="submit" name="get-data" class="button button-primary" value="Get User Data" />
         </p>
       </form>
       <?php
-      if (isset($_POST['submit'])) {
-        $this->users[] = new Wpam_User_Data(intval($_POST['source_user_id']));
-        $this->users[] = new Wpam_User_Data(intval($_POST['target_user_id']));
+      if (isset($_POST['get-data'])) {
+      ?>
+      <h2>Account Details</h2>
+      <form method="post">
+      <?php
+        $this->users[] = new Wpam_User_Data(get_user_by( 'login', $_POST['source_user_id']));
+        $this->users[] = new Wpam_User_Data(get_user_by( 'login', $_POST['target_user_id']));
+        foreach ($this->users as $user) {
+          $validUser = $user->does_exist();
+          if (!$validUser) {
+            echo $validUser;
+            return false;
+          }
+        }
+        if (!$validUser) {
+          echo 'Invalid User IDs';
+          return false;
+        }
         $user_selection = $this->display_account_details_choices($this->users);
         if (!$user_selection) {
           echo 'Invalid User IDs';
@@ -152,27 +169,46 @@ class Wpam_Admin {
         is_plugin_active('woocommerce/woocommerce.php') ? $this->display_order_choices() : '';
         is_plugin_active('woocommerce-subscriptions/woocommerce-subscriptions.php') ? $this->display_subscription_choices() : '';
         is_plugin_active('woocommerce-memberships/woocommerce-memberships.php') ? $this->display_membership_choices() : '';
-      } ?>
+        ?>
+        <p class="submit">
+          <input type="submit" name="merge-data" class="button button-primary" value="Merge Accounts" />
+        </p>
+        <?php
+        }  ?>
+      </form>
     </div>
     <?php
   }
 
   public function display_account_details_choices() {
     $account1 = $this->users[0];
-    $account2 = $this->users[1];
+    $account2 = $this->users[sizeof($this->users) - 1];
+
     if (!$account1 || !$account2) {
       return false;
     }
     ?>
-      <table class="wp-list-table widefat fixed">
+      <table id="account-details-table" class="wp-list-table widefat fixed">
         <thead>
           <tr>
-            <th>Account Details</th>
-            <?php foreach ($this->users as $user) { echo '<th>' . $user->get_account_detail('nickname') . '</th>'; } ?>
+            <th>UserName</th>
+          <?php foreach ($this->users as $user) { ?> 
+            <th id="<?php $user->get_account_detail('user_login') ?>">
+            <input type="radio" name="select_all">
+            <?php echo $user->get_account_detail('user_login') ?>
+          </th> <?php } ?>
           </tr>
         </thead>
         <tbody>
-          <?php foreach($account1->get_user_data() as $key => $val) { $this->display_detail_section($key); } ?>
+        <?php foreach($account1->get_user_data() as $key => $val) { 
+          if (is_array($val)) { 
+            foreach ($val as $k => $v) { 
+              $this->display_detail_section($key, $k); 
+            }
+          } else {
+            $this->display_detail_section($key);
+          }
+        } ?>
         </tbody>
     </table>
     <br>
@@ -180,19 +216,30 @@ class Wpam_Admin {
     return true;
   }
 
-  private function display_detail_section($key) {
+  private function display_detail_section($key, $subkey = '') {
+    if ($key === 'meta_data') { return false; }
+    if ($this->users[0]->get_account_detail($key, $subkey) === "" && $this->users[sizeof($this->users) - 1]->get_account_detail($key, $subkey) === "") { return false; }
+
   ?>
     <tr>
-      <td><?php echo $key; ?></td>
-      <?php foreach ($this->users as $user) { $this->display_account_detail($key, $user->get_account_detail($key)); } ?>
+      <td><?php echo $subkey === '' ? $key : $key . '_' . $subkey; ?></td>
+      <?php 
+        foreach ($this->users as $user) {
+          $subkey === '' ? $this->display_account_detail($key, $user->get_account_detail($key)) : $this->display_account_detail($key . '_' . $subkey, $user->get_account_detail($key, $subkey)); 
+        }
+      ?>
     </tr>
   <?php
   }
 
   private function display_account_detail($key, $val) {
   ?>
-    <td><input type="radio" name="<?php echo $key; ?>" value="<?php echo $val; ?>"><?php echo $val; ?></td>
-  <?php
+    <td><input type="radio" name="<?php echo $key; ?>" value="<?php
+      echo $val;
+      ?>"><?php
+      echo $val;
+      ?></td>
+  <?php 
   }
 
   public function display_order_choices() {
@@ -251,15 +298,6 @@ class Wpam_Admin {
         ?>
       </tbody>
     </table>
-
-    <script>
-    document.getElementById('woo_orders').addEventListener('change', function() {
-      var checkboxes = document.getElementsByName('orders');
-      for (var i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = this.checked;
-      }
-    });
-    </script>
     <br>
     <?php
   }
@@ -307,14 +345,6 @@ class Wpam_Admin {
         <?php $this->check_array_loop_and_display_subscriptions($target_subscriptions); ?>
       </tbody>
     </table>
-    <script>
-    document.getElementById('woo_subscriptions').addEventListener('change', function() {
-      var checkboxes = document.getElementsByName('subscriptions');
-      for (var i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = this.checked;
-      }
-    });
-    </script>
     <br>
     <?php
 
@@ -377,14 +407,6 @@ class Wpam_Admin {
         <?php $this->check_array_loop_and_display_memberships($target_memberships); ?>
       </tbody>
     </table>
-    <script>
-    document.getElementById('woo_memberships').addEventListener('change', function() {
-      var checkboxes = document.getElementsByName('memberships');
-      for (var i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = this.checked;
-      }
-    });
-    </script>
     <br>
     <?php
   }

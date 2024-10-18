@@ -77,6 +77,7 @@ class Wpam {
 		$this->load_dependencies();
 		$this->set_locale();
 		$this->define_admin_hooks();
+    $this->define_admin_settings_hooks();
 		$this->define_public_hooks();
 
 	}
@@ -122,6 +123,12 @@ class Wpam {
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'public/class-wpam-public.php';
 
+    /**
+     * The class responsible for defining all actions that occur in the admin settings
+     * side of the site.
+     */
+    require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-wpam-admin-settings.php';
+
 		$this->loader = new Wpam_Loader();
 
 	}
@@ -158,6 +165,15 @@ class Wpam {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
 
 	}
+
+  private function define_admin_settings_hooks() {
+
+    $plugin_admin = new Wpam_Admin_Settings( $this->get_plugin_name(), $this->get_version() );
+
+    $this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
+    $this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+
+  }
 
 	/**
 	 * Register all of the hooks related to the public-facing functionality

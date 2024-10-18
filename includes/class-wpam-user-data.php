@@ -4,7 +4,17 @@ class Wpam_User_Data {
 
   protected $user = array();
 
-  public function __construct($user_id) {
+  public function __construct($user) {
+    $user_id = $user->ID;
+
+    $this->user['id'] = $user_id;
+
+    add_action('admin_menu',array( $this, 'check_user'));
+
+    if ($this->user['id'] === 0) {
+      return false;
+    }
+    
     $this->user['acct_details'] = $this->set_user_data($user_id);
 
     if( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
@@ -18,16 +28,36 @@ class Wpam_User_Data {
     if( is_plugin_active( 'woocommerce-memberships/woocommerce-memberships.php' ) ) {
       $this->user['memberships'] = $this->set_user_memberships($user_id); 
     }
+  }
 
+  public function check_user() {
+    if (!get_user($this->user['id'])) {
+      $this->user['id'] = 0;
+    }
   }
 
   public function set_user_data($user_id) {
     $data = get_userdata($user_id);
     if (!$data) {
       return false;
+    } else {
+      $data = $data->to_array();
+    }
+
+    if (is_plugin_active('woocommerce/woocommerce.php')) {
+      $data = array_merge($data, $this->set_user_woo_data($user_id));
     }
 
     return $data;
+  }
+
+  public function set_user_woo_data($user_id) {
+    $customer = new WC_Customer($user_id);
+    if (!$customer) {
+      return false;
+    }
+
+    return $customer->get_data();
   }
 
   public function set_user_orders($user_id) {
@@ -63,12 +93,16 @@ class Wpam_User_Data {
     return $memberships;
   }
 
-  public function get_user_data() {
-    return $this->user['acct_details']->data;
+  public function does_exist() {
+    return $this->user['id'] !== 0;
   }
 
-  public function get_account_detail($key) {
-    return $this->user['acct_details']->$key;
+  public function get_user_data() {
+    return $this->user['acct_details'];
+  }
+
+  public function get_account_detail($key, $subkey = '') {
+    return $subkey === '' ? $this->user['acct_details'][$key] : $this->user['acct_details'][$key][$subkey];
   }
 
   public function get_user_orders() {

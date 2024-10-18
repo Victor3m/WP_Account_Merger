@@ -30,7 +30,8 @@ class Wpam_Activator {
 	 * @since    1.0.0
 	 */
 	public static function activate() {
-
+    add_option( 'wpam_select_target', true );
+    add_option( 'wpam_select_all', true );
 	}
 
 }
