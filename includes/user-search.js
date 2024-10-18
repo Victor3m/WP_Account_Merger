@@ -38,16 +38,22 @@
         dataList.empty();
       } else if ($(this).val().length >= 3) {
         var user = $(this).val();
-        jQuery.ajax({
-          type: "GET",
-          url: "http://test-wpaccountmerger.local/wp-content/plugins/WP_Account_Merger/includes/user-search.php?user=" + user,
+        $.ajax({
+          type: "POST",
+          url: wpam_search_obj.ajax_url,
+          data: { _ajax_nonce: wpam_search_obj.nonce, action: 'wpam_user_search', user: user },
           success: function(data) {
-            var array = JSON.parse(data);
-            console.log(array);
-            for (var key in array) {
-              var option = document.createElement("option");
-              option.text = array[key].user_login;
-              dataList.append(option);
+            if (data == "") {
+              return;
+            }
+            if (data.length == 0) {
+              return;
+            } else {
+              for (var key in data) {
+                var option = document.createElement("option");
+                option.text = data[key].user_login;
+                dataList.append(option);
+              }
             }
           },
         });

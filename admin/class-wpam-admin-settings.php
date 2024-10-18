@@ -15,11 +15,9 @@ class Wpam_Admin_Settings {
   }
 
   public function enqueue_scripts() {
-    wp_enqueue_script( 'wpam_admin_settings', plugin_dir_url( __FILE__ ) . 'js/wpam-admin-settings.js', array( 'jquery' ), $this->version, true );
   }
 
   public function enqueue_styles() {
-    wp_enqueue_style( 'wpam_admin_settings', plugin_dir_url( __FILE__ ) . 'css/wpam-admin-settings.css', array(), $this->version, 'all' );
   }
 
   public function wpam_options_page() {

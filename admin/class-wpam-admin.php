@@ -101,9 +101,6 @@ class Wpam_Admin {
 		 * between the defined hooks and the functions defined in this
 		 * class.
 		 */
-
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpam-admin.js', array( 'jquery' ), $this->version, false );
-
 	}
 
   public function register_admin_hooks() {
