@@ -1,7 +1,5 @@
 <?php
 
-require_once('/Users/josiah.hester/Local Sites/test-wpaccountmerger/app/public/wp-load.php');
-
 add_action( 'admin_enqueue_scripts', 'wpam_enqueue_scripts' );
 function wpam_enqueue_scripts( $hook ) {
 
