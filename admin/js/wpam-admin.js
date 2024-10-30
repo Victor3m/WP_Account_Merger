@@ -101,6 +101,82 @@
     })
   })
 
+  $( function() {
+    if (typeof getUserList === 'undefined') {
+      return;
+    }
 
+    const userList = getUserList();
 
+    $("input:text").on("keyup",function() {
+      var input = $(this);
+
+      makeList(input);
+    });
+
+    function makeList(input) {
+      var ul = input.parents("div[class*='users_dropdown']").find("ul");
+      if (userList.length > 0) { 
+        var results = filterUsers(input.val());
+        if (results.length > 0) {
+          var list = "";
+          for (var i = 0; i < results.length; i++) {
+            list += "<li>" + results[i].user_login + "</li>";
+          }
+          ul.html(list);
+        }
+      }
+    }
+
+    function filterUsers( key ) {
+      var results = [];
+      for (var i = 0; i < userList.length; i++) {
+        if (userList[i].user_login.toLowerCase().includes(key.toLowerCase())) {
+          results.push(userList[i]);
+        } else if (userList[i].user_nicename.toLowerCase().includes(key.toLowerCase())) {
+          results.push(userList[i]);
+        } else if (userList[i].user_email.toLowerCase().includes(key.toLowerCase())) {
+          results.push(userList[i]);
+        } else if (userList[i].id == key.toLowerCase()) {
+          results.push(userList[i]);
+        }
+      }
+
+      return results;
+    }
+
+    $("#account-details-table thead tr th input:radio").change(function() {
+      var columnIndex = $(this).parent().index();
+      var rows = $(this).parents("table").find("tbody tr");
+      if (this.checked) {
+        rows.each(function() {
+          $(this).find("td:eq(" + columnIndex + ") input:radio").prop("checked", true);
+        });
+      } else {
+        rows.each(function() {
+          $(this).find("td:eq(" + columnIndex + ") input:radio").prop("checked", false);
+        });
+      }
+    });
+
+    $("tbody tr td input:radio").change(function() {
+      if (this.checked) {
+        $("#account-details-table thead tr th input:radio").prop("checked", false);
+      }
+    })
+
+    $("table thead tr th input:checkbox").change(function() {
+      if (this.checked) {
+        $(this).parents("table").find("input:checkbox").prop("checked", true);
+      } else {
+        $(this).parents("table").find("input:checkbox").prop("checked", false);
+      }
+    })
+
+    $("table tbody tr td input:checkbox").change(function() {
+      if (!this.checked) {
+        $(this).parents("table").find("thead tr th input:checkbox").prop("checked", false);
+      }
+    })
+  })
 })( jQuery );

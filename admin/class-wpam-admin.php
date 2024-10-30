@@ -60,6 +60,20 @@ class Wpam_Admin {
     $this->register_admin_hooks();
     $this->users = array();
 
+    if ( false === ( $wpam_search = get_transient( 'wpam_search' ) ) ) {
+      $wpam_search = get_users();
+
+      set_transient( 'wpam_search', $wpam_search, 5 * MINUTE_IN_SECONDS );
+    }
+
+    foreach ($wpam_search as $user) {
+      $this->userList[] = array(
+        'id' => $user->ID,
+        'user_login' => $user->user_login,
+        'user_nicename' => $user->user_nicename,
+        'user_email' => $user->user_email
+      );
+    }
 	}
 
 	/**
