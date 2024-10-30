@@ -46,6 +46,25 @@ class Wpam_Admin {
 
   private $userList;
 
+  protected function set_users_transient() {
+
+    $fields = [
+      'ID',
+      'user_login',
+      'user_nicename',
+      'user_email'
+    ];
+
+    $queryArgs = [
+      'fields' => $fields,
+    ];
+
+    $queryResult = get_users( $queryArgs );
+
+    set_transient( 'wpam_users', wp_json_encode( $queryResult ), 5 * MINUTE_IN_SECONDS );
+
+  }
+
 	/**
 	 * Initialize the class and set its properties.
 	 *
@@ -130,30 +149,18 @@ class Wpam_Admin {
     /**
      * @return bool
      */
-    public function render_user_submenu() {
-    if ( false === ( $wpam_search = get_transient( 'wpam_search' ) ) ) {
-      $wpam_search = get_users();
+  public function render_user_submenu() {
 
-      set_transient( 'wpam_search', $wpam_search, 5 * MINUTE_IN_SECONDS );
+    if ( false === (get_transient('wpam_users'))) {
+      $this->set_users_transient();
     }
 
-    $results = array();
-
-    foreach ($wpam_search as $user) {
-      $results[] = array(
-        'id' => $user->ID,
-        'user_login' => $user->user_login,
-        'user_nicename' => $user->user_nicename,
-        'user_email' => $user->user_email
-      );
-    }
-
-    $userList = wp_json_encode( $results );
+    $this->userList = get_transient('wpam_users');
 
   ?>
     <script type="text/javascript">
       function getUserList() {
-        return <?php echo $userList; ?>;
+        return <?php echo $this->userList; ?>;
       }
     </script>
     <div class="wrap">
