@@ -44,6 +44,8 @@ class Wpam_Admin {
 
   private $users;
 
+  private $userList;
+
 	/**
 	 * Initialize the class and set its properties.
 	 *
@@ -64,7 +66,8 @@ class Wpam_Admin {
 	 * Register the stylesheets for the admin area.
 	 *
 	 * @since    1.0.0
-	 */
+* @return void
+ 	 */
 	public function enqueue_styles() {
 
 		/**
@@ -87,7 +90,8 @@ class Wpam_Admin {
 	 * Register the JavaScript for the admin area.
 	 *
 	 * @since    1.0.0
-	 */
+* @return void
+ 	 */
 	public function enqueue_scripts() {
 
 		/**
@@ -104,12 +108,16 @@ class Wpam_Admin {
 
     wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpam-admin.js', array( 'jquery' ), $this->version, false );
 	}
-
-  public function register_admin_hooks() {
+    /**
+     * @return void
+     */
+    public function register_admin_hooks() {
     add_action('admin_menu', array($this,'create_user_submenu'));
   }
-
-  public function create_user_submenu() {
+    /**
+     * @return void
+     */
+    public function create_user_submenu() {
     add_submenu_page(
       'users.php',
       'WP Account Merger',
@@ -119,22 +127,58 @@ class Wpam_Admin {
       array($this, 'render_user_submenu'),
     );
   }
+    /**
+     * @return bool
+     */
+    public function render_user_submenu() {
+    if ( false === ( $wpam_search = get_transient( 'wpam_search' ) ) ) {
+      $wpam_search = get_users();
 
-  public function render_user_submenu() {
+      set_transient( 'wpam_search', $wpam_search, 5 * MINUTE_IN_SECONDS );
+    }
+
+    $results = array();
+
+    foreach ($wpam_search as $user) {
+      $results[] = array(
+        'id' => $user->ID,
+        'user_login' => $user->user_login,
+        'user_nicename' => $user->user_nicename,
+        'user_email' => $user->user_email
+      );
+    }
+
+    $userList = wp_json_encode( $results );
+
   ?>
+    <script type="text/javascript">
+      function getUserList() {
+        return <?php echo $userList; ?>;
+      }
+    </script>
     <div class="wrap">
       <h1>User Account Merger</h1>
       <form method="post">
         <table class="form-table">
           <tr>
             <th><label for="source_user_id">Source User ID:</label></th>
-            <td><input list="source_users" type="text" id="source_user_id" name="source_user_id" autocomplete="off" required/></td>
-            <datalist id="source_users"></datalist>
+            <td>
+              <div class="source_users_dropdown">
+                <input type="text" id="source_user_id" name="source_user_id" autocomplete="off" required placeholder="Source User ID"/>
+                <ul id="source_dropdownList">
+                </ul>
+              </div>
+            </td>
           </tr>
           <tr>
             <th><label for="target_user_id">Target User ID:</label></th>
-            <td><input list="target_users" type="text" id="target_user_id" name="target_user_id" autocomplete="off" required/></td>
-            <datalist id="target_users"></datalist>
+            <td>
+              <div class="target_users_dropdown">
+                <input type="text" id="target_user_id" name="target_user_id" autocomplete="off" required placeholder="Target User ID"/>
+                <ul id="target_dropdownList">
+                </ul>
+              </div>
+            </td>
           </tr>
         </table>
         <p class="submit">
@@ -178,8 +222,10 @@ class Wpam_Admin {
     </div>
     <?php
   }
-
-  public function display_account_details_choices() {
+    /**
+     * @return bool
+     */
+    public function display_account_details_choices() {
     $account1 = $this->users[0];
     $account2 = $this->users[sizeof($this->users) - 1];
 
@@ -214,8 +260,10 @@ class Wpam_Admin {
     <?php
     return true;
   }
-
-  private function display_detail_section($key, $subkey = '') {
+    /**
+     * @return bool
+     */
+    private function display_detail_section($key, $subkey = '') {
     if ($key === 'meta_data') { return false; }
     if ($this->users[0]->get_account_detail($key, $subkey) === "" && $this->users[sizeof($this->users) - 1]->get_account_detail($key, $subkey) === "") { return false; }
 
@@ -230,8 +278,10 @@ class Wpam_Admin {
     </tr>
   <?php
   }
-
-  private function display_account_detail($key, $val) {
+    /**
+     * @return void
+     */
+    private function display_account_detail($key, $val) {
   ?>
     <td><input type="radio" name="<?php echo $key; ?>" value="<?php
       echo $val;
@@ -240,8 +290,10 @@ class Wpam_Admin {
       ?></td>
   <?php 
   }
-
-  public function display_order_choices() {
+    /**
+     * @return bool|<missing>
+     */
+    public function display_order_choices() {
     // Retrieve the orders
     $source_orders = $this->users[0]->get_user_orders();
     $target_orders = $this->users[1]->get_user_orders();
@@ -262,8 +314,10 @@ class Wpam_Admin {
 
     return ($selected_orders) ? $selected_orders : false;
   }
-
-  private function display_order_choices_table($source_orders, $target_orders) {
+    /**
+     * @return void
+     */
+    private function display_order_choices_table($source_orders, $target_orders) {
     ?>
     <table class="wp-list-table widefat fixed striped"> 
       <thead>
@@ -300,8 +354,10 @@ class Wpam_Admin {
     <br>
     <?php
   }
-
-  private function display_order($order) {
+    /**
+     * @return bool
+     */
+    private function display_order($order) {
     if (!$order) {
       return false;
     } else {
@@ -317,8 +373,10 @@ class Wpam_Admin {
     </tr>
     <?php }
   }
-
-  public function display_subscription_choices() {
+    /**
+     * @return bool|<missing>
+     */
+    public function display_subscription_choices() {
     // Retrieve the subscriptions
     $source_subscriptions = $this->users[0]->get_user_subscriptions();
     $target_subscriptions = $this->users[1]->get_user_subscriptions();
@@ -356,8 +414,10 @@ class Wpam_Admin {
 
     return $selected_subscriptions ? $selected_subscriptions : false;
   }
-
-  private function check_array_loop_and_display_subscriptions($array) {
+    /**
+     * @return bool
+     */
+    private function check_array_loop_and_display_subscriptions($array) {
     if (!$array) {
       return false;
     } elseif (is_array($array)) {
@@ -379,8 +439,10 @@ class Wpam_Admin {
     </tr> 
     <?php }
   }
-
-  public function display_membership_choices() {
+    /**
+     * @return bool
+     */
+    public function display_membership_choices() {
     // Retrieve the memberships
     $source_memberships = $this->users[0]->get_user_memberships();
     $target_memberships = $this->users[1]->get_user_memberships();
@@ -409,8 +471,10 @@ class Wpam_Admin {
     <br>
     <?php
   }
-
-  private function check_array_loop_and_display_memberships($array) {
+    /**
+     * @return bool
+     */
+    private function check_array_loop_and_display_memberships($array) {
     if (!$array) {
       return false;
     } elseif (is_array($array)) {

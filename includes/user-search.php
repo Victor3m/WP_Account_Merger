@@ -25,19 +25,15 @@ add_action('wp_ajax_wpam_user_search', 'wpam_search_handler');
 function wpam_search_handler() {
   check_ajax_referer('wpam_search_nonce');
 
-  $search_query = $_POST['user'];
+  if ( false === ( $wpam_search = get_transient( 'wpam_search' ) ) ) {
+    $wpam_search = get_users();
 
-  $args = array(
-    'search' => '*' . esc_attr($search_query) . '*',
-    'search_columns' => array('ID', 'user_login', 'user_nicename', 'user_email'),
-    'number' => 10
-  );
-
-  $users = get_users($args);
+    set_transient( 'wpam_search', $wpam_search, 5 * MINUTE_IN_SECONDS );
+  }
 
   $results = array();
 
-  foreach ($users as $user) {
+  foreach ($wpam_search as $user) {
     $results[] = array(
       'id' => $user->ID,
       'user_login' => $user->user_login,

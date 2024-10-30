@@ -30,35 +30,44 @@
 	 */
 
   $( function() {
+    const userList = getUserList();
 
     $("input:text").on("keyup",function() {
-      var dataList = $("datalist[id=" + $(this).attr("list") + "]");
-      dataList.empty();
-      if ($(this).val() == "") {
-        dataList.empty();
-      } else if ($(this).val().length >= 3) {
-        var user = $(this).val();
-        $.ajax({
-          type: "POST",
-          url: wpam_search_obj.ajax_url,
-          data: { _ajax_nonce: wpam_search_obj.nonce, action: 'wpam_user_search', user: user },
-          success: function(data) {
-            if (data == "") {
-              return;
-            }
-            if (data.length == 0) {
-              return;
-            } else {
-              for (var key in data) {
-                var option = document.createElement("option");
-                option.text = data[key].user_login;
-                dataList.append(option);
-              }
-            }
-          },
-        });
-      }
+      var input = $(this);
+
+      makeList(input);
     });
+
+    function makeList(input) {
+      var ul = input.parents("div[class*='users_dropdown']").find("ul");
+      if (userList.length > 0) { 
+        var results = filterUsers(input.val());
+        if (results.length > 0) {
+          var list = "";
+          for (var i = 0; i < results.length; i++) {
+            list += "<li>" + results[i].user_login + "</li>";
+          }
+          ul.html(list);
+        }
+      }
+    }
+
+    function filterUsers( key ) {
+      var results = [];
+      for (var i = 0; i < userList.length; i++) {
+        if (userList[i].user_login.toLowerCase().includes(key.toLowerCase())) {
+          results.push(userList[i]);
+        } else if (userList[i].user_nicename.toLowerCase().includes(key.toLowerCase())) {
+          results.push(userList[i]);
+        } else if (userList[i].user_email.toLowerCase().includes(key.toLowerCase())) {
+          results.push(userList[i]);
+        } else if (userList[i].id == key.toLowerCase()) {
+          results.push(userList[i]);
+        }
+      }
+
+      return results;
+    }
 
     $("#account-details-table thead tr th input:radio").change(function() {
       var columnIndex = $(this).parent().index();
